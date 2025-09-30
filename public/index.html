@@ -190,6 +190,20 @@
         if (!r.ok) throw new Error('Error de servidor');
         const data = await r.json();
 
+        // Fallback si el assistant no manda KPIs
+        if (!Array.isArray(data.kpis) || data.kpis.length === 0) {
+          const kpisAuto = [];
+          if (Array.isArray(data.tabla) && data.tabla.length) {
+            kpisAuto.push({ nombre: "Filas en tabla", valor: data.tabla.length, periodo: "" });
+          }
+          const ds0 = data?.grafico?.datasets?.[0]?.data;
+          if (Array.isArray(ds0) && ds0.length) {
+            const total = ds0.reduce((a, b) => a + (+b || 0), 0);
+            kpisAuto.push({ nombre: data.grafico.datasets[0].label || "Total serie 1", valor: total, periodo: "" });
+          }
+          data.kpis = kpisAuto;
+        }
+        
         setExplanation(data.explicacion || '');
 
         (data.kpis||[]).forEach(k => kpis.appendChild(kpiCard(k)));
