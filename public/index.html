@@ -36,18 +36,8 @@
         <p id="progressText" class="mt-1 text-xs text-slate-500">Preparando… 0%</p>
       </div>
 
-      <!-- Explicación breve -->
-      <section class="mt-2" id="secExp">
-        <h3 class="mb-3 text-sm font-medium text-slate-600">Explicación</h3>
-        <p id="exp" class="reveal text-slate-700"></p>
-        <div class="mt-3 flex items-center gap-3">
-          <button id="toggleExp" class="hidden text-sm font-medium text-indigo-600 hover:underline">Ver todo</button>
-          <button id="copyExp" class="hidden text-sm text-slate-600 hover:underline">Copiar</button>
-        </div>
-      </section>
-
       <!-- Indicadores -->
-      <section class="mt-8" id="secKpis">
+      <section class="mt-2" id="secKpis">
         <h3 class="mb-3 text-sm font-medium text-slate-600">Indicadores</h3>
         <div id="kpis" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
       </section>
@@ -72,6 +62,16 @@
       <section class="mt-8" id="secTable">
         <h3 class="mb-3 text-sm font-medium text-slate-600">Tabla</h3>
         <div id="table" class="reveal overflow-auto"></div>
+      </section>
+
+      <!-- Explicación al final, debajo de la tabla -->
+      <section class="mt-8" id="secExp">
+        <h3 class="mb-3 text-sm font-medium text-slate-600">Explicación</h3>
+        <p id="exp" class="reveal text-slate-700"></p>
+        <div class="mt-3 flex items-center gap-3">
+          <button id="toggleExp" class="hidden text-sm font-medium text-indigo-600 hover:underline">Ver todo</button>
+          <button id="copyExp" class="hidden text-sm text-slate-600 hover:underline">Copiar</button>
+        </div>
       </section>
     </section>
     <!-- === FIN RESULTADOS === -->
@@ -134,11 +134,12 @@
     function startProgress(){
       pWrap.classList.remove('hidden');
       setBar(0);
-      animateTo(85, 45000);
+      // Faster than before, but still slow
+      animateTo(85, 28000);
     }
     function endProgress(){
-      animateTo(100, 3000);
-      setTimeout(()=> pWrap.classList.add('hidden'), 3500);
+      animateTo(100, 1800);
+      setTimeout(()=> pWrap.classList.add('hidden'), 2100);
     }
 
     // Explicación con truncado/copiar
@@ -258,7 +259,7 @@
         if (!r.ok) throw new Error('Error de servidor');
 
         // Avance al recibir HTTP
-        animateTo(96, 6000);
+        animateTo(96, 4000);
 
         const data = await r.json();
 
@@ -315,6 +316,4 @@
     });
   </script>
 </body>
-</html>
-</html>
 </html>
