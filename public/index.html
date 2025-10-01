@@ -9,6 +9,7 @@
   <style>
     .reveal{opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease}
     .reveal.show{opacity:1; transform:none}
+    .hidden{display:none}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -25,42 +26,54 @@
       <button id="go" class="rounded-2xl bg-indigo-600 px-6 py-3 text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700">Preguntar</button>
     </div>
 
-    <!-- Indicadores -->
-    <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 class="mb-3 text-sm font-medium text-slate-600">Indicadores</h3>
-      <div id="kpis" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
-    </section>
-
-    <!-- Gráfico -->
-    <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div class="mb-3 flex items-center justify-between">
-        <h3 class="text-sm font-medium text-slate-600">Gráfico</h3>
-        <select id="chartType" class="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm">
-          <option value="bar">Barras</option>
-          <option value="line">Líneas</option>
-          <option value="doughnut">Doughnut</option>
-          <option value="pie">Tarta</option>
-        </select>
+    <!-- === RESULTADOS: barra de progreso + secciones === -->
+    <section id="results" class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <!-- Barra de progreso (dentro del mismo contenedor que los resultados) -->
+      <div id="progressWrap" class="mb-4 hidden">
+        <div class="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+          <div id="progressBar" class="h-full w-0 bg-indigo-600"></div>
+        </div>
+        <p id="progressText" class="mt-1 text-xs text-slate-500">Preparando… 0%</p>
       </div>
-      <div class="h-96">
-        <canvas id="chart" class="reveal h-full w-full"></canvas>
-      </div>
-    </section>
 
-    <!-- Tabla -->
-    <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 class="mb-3 text-sm font-medium text-slate-600">Tabla</h3>
-      <div id="table" class="reveal overflow-auto"></div>
-    </section>
+      <!-- Indicadores -->
+      <section class="mt-2" id="secKpis">
+        <h3 class="mb-3 text-sm font-medium text-slate-600">Indicadores</h3>
+        <div id="kpis" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+      </section>
 
-    <!-- Explicación al final -->
-    <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p id="exp" class="reveal text-slate-700"></p>
-      <div class="mt-3 flex items-center gap-3">
-        <button id="toggleExp" class="hidden text-sm font-medium text-indigo-600 hover:underline">Ver todo</button>
-        <button id="copyExp" class="hidden text-sm text-slate-600 hover:underline">Copiar</button>
-      </div>
+      <!-- Gráfico -->
+      <section class="mt-8" id="secChart">
+        <div class="mb-3 flex items-center justify-between">
+          <h3 class="text-sm font-medium text-slate-600">Gráfico</h3>
+          <select id="chartType" class="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm">
+            <option value="bar">Barras</option>
+            <option value="line">Líneas</option>
+            <option value="doughnut">Doughnut</option>
+            <option value="pie">Tarta</option>
+          </select>
+        </div>
+        <div class="h-96">
+          <canvas id="chart" class="reveal h-full w-full"></canvas>
+        </div>
+      </section>
+
+      <!-- Tabla -->
+      <section class="mt-8" id="secTable">
+        <h3 class="mb-3 text-sm font-medium text-slate-600">Tabla</h3>
+        <div id="table" class="reveal overflow-auto"></div>
+      </section>
+
+      <!-- Explicación al final -->
+      <section class="mt-8" id="secExp">
+        <p id="exp" class="reveal text-slate-700"></p>
+        <div class="mt-3 flex items-center gap-3">
+          <button id="toggleExp" class="hidden text-sm font-medium text-indigo-600 hover:underline">Ver todo</button>
+          <button id="copyExp" class="hidden text-sm text-slate-600 hover:underline">Copiar</button>
+        </div>
+      </section>
     </section>
+    <!-- === FIN RESULTADOS === -->
   </div>
 
   <script>
@@ -73,10 +86,59 @@
     const table = document.getElementById('table');
     const chartTypeSel = document.getElementById('chartType');
 
+    // Progreso
+    const pWrap = document.getElementById('progressWrap');
+    const pBar  = document.getElementById('progressBar');
+    const pTxt  = document.getElementById('progressText');
+
+    // Secciones para ocultar/mostrar en bloque
+    const secKpis  = document.getElementById('secKpis');
+    const secChart = document.getElementById('secChart');
+    const secTable = document.getElementById('secTable');
+    const secExp   = document.getElementById('secExp');
+
     let chart;
+    let prog = 0, rafId = 0;
 
     function reveal(el, delay=0){ setTimeout(()=> el?.classList?.add('show'), delay); }
     function revealAll(list, step=80){ list.forEach((node, i)=> reveal(node, i*step)); }
+
+    function hideSections(){
+      [secKpis, secChart, secTable, secExp].forEach(s => s.classList.add('hidden'));
+    }
+    function showSections(){
+      [secKpis, secChart, secTable, secExp].forEach(s => s.classList.remove('hidden'));
+    }
+
+    // Progreso suave
+    function setBar(val){
+      prog = Math.max(0, Math.min(100, val));
+      pBar.style.width = prog + '%';
+      pTxt.textContent = (prog < 100) ? 'Preparando… ' + Math.floor(prog) + '%' : 'Listo';
+    }
+    function animateTo(target, ms){
+      cancelAnimationFrame(rafId);
+      const start = performance.now();
+      const from  = prog;
+      const to    = target;
+      const easeInOutQuad = t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+      function step(now){
+        const t = Math.min(1, (now - start) / ms);
+        const eased = easeInOutQuad(t);
+        setBar(from + (to - from) * eased);
+        if (t < 1) rafId = requestAnimationFrame(step);
+      }
+      rafId = requestAnimationFrame(step);
+    }
+    function startProgress(){
+      pWrap.classList.remove('hidden');
+      setBar(0);
+      animateTo(90, 4500);
+    }
+    function endProgress(){
+      animateTo(100, 500);
+      setTimeout(()=> pWrap.classList.add('hidden'), 700);
+    }
 
     // Explicación con truncado/copiar
     function setExplanation(text){
@@ -176,6 +238,11 @@
     async function ask() {
       btn.disabled = true; q.disabled = true;
 
+      // Oculta secciones y muestra barra de progreso dentro del mismo contenedor
+      hideSections();
+      pWrap.classList.remove('hidden');
+      startProgress();
+
       setExplanation('Procesando…');
       kpis.innerHTML = '';
       table.classList.remove('show');
@@ -188,9 +255,13 @@
           body: JSON.stringify({ pregunta: q.value })
         });
         if (!r.ok) throw new Error('Error de servidor');
+
+        // Avance al recibir HTTP
+        animateTo(95, 600);
+
         const data = await r.json();
 
-        // Fallback si el assistant no manda KPIs
+        // Fallback si no llegan KPIs
         if (!Array.isArray(data.kpis) || data.kpis.length === 0) {
           const kpisAuto = [];
           if (Array.isArray(data.tabla) && data.tabla.length) {
@@ -221,8 +292,13 @@
         renderTable(data.tabla||[]);
         reveal(table, 100);
 
+        // Termina y muestra secciones
+        endProgress();
+        showSections();
+
       } catch (e) {
         setExplanation('Error: ' + e.message);
+        endProgress();
       } finally {
         btn.disabled = false; q.disabled = false;
       }
