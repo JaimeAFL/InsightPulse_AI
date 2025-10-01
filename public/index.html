@@ -134,11 +134,11 @@
     function startProgress(){
       pWrap.classList.remove('hidden');
       setBar(0);
-      animateTo(90, 4500);
+      animateTo(85, 15000);
     }
     function endProgress(){
-      animateTo(100, 500);
-      setTimeout(()=> pWrap.classList.add('hidden'), 700);
+      animateTo(100, 1200);
+      setTimeout(()=> pWrap.classList.add('hidden'), 1400);
     }
 
     // Explicación con truncado/copiar
@@ -258,7 +258,7 @@
         if (!r.ok) throw new Error('Error de servidor');
 
         // Avance al recibir HTTP
-        animateTo(95, 600);
+        animateTo(96, 2500);
 
         const data = await r.json();
 
@@ -315,5 +315,6 @@
     });
   </script>
 </body>
+</html>
 </html>
 </html>
