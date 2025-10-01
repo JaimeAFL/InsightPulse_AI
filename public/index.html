@@ -37,13 +37,13 @@
       </div>
 
       <!-- Indicadores -->
-      <section class="mt-2" id="secKpis" class="hidden">
+      <section class="mt-2 hidden" id="secKpis">
         <h3 class="mb-3 text-sm font-medium text-slate-600">Indicadores</h3>
         <div id="kpis" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
       </section>
 
       <!-- Gráfico -->
-      <section class="mt-8" id="secChart" class="hidden">
+      <section class="mt-8 hidden" id="secChart">
         <div class="mb-3 flex items-center justify-between">
           <h3 class="text-sm font-medium text-slate-600">Gráfico</h3>
           <select id="chartType" class="rounded-xl border border-slate-200 bg-white px-3 py-1 text-sm">
@@ -59,13 +59,13 @@
       </section>
 
       <!-- Tabla -->
-      <section class="mt-8" id="secTable" class="hidden">
+      <section class="mt-8 hidden" id="secTable">
         <h3 class="mb-3 text-sm font-medium text-slate-600">Tabla</h3>
         <div id="table" class="reveal overflow-auto"></div>
       </section>
 
       <!-- Explicación al final, debajo de la tabla -->
-      <section class="mt-8" id="secExp" class="hidden">
+      <section class="mt-8 hidden" id="secExp">
         <h3 class="mb-3 text-sm font-medium text-slate-600">Explicación</h3>
         <p id="exp" class="reveal text-slate-700"></p>
         <div class="mt-3 flex items-center gap-3">
@@ -111,7 +111,7 @@
       [secKpis, secChart, secTable, secExp].forEach(s => s.classList.remove('hidden'));
     }
 
-    // Progreso suave
+    // Progreso suave con callback al terminar
     function setBar(val){
       prog = Math.max(0, Math.min(100, val));
       pBar.style.width = prog + '%';
@@ -139,21 +139,19 @@
       hideSections();
       pWrap.classList.remove('hidden');
       setBar(0);
-      // Faster than before, but still slow
+      // velocidad intermedia
       animateTo(85, 28000);
     }
     function endProgress(){
-      animateTo(100, 1800);
-      setTimeout(()=>{
+      animateTo(100, 1800, () => {
         pWrap.classList.add('hidden');
         showSections();
-        // Revela elementos ya pintados
         revealAll([...kpis.children], 80);
         const canvas = document.getElementById('chart');
         if (canvas) reveal(canvas, 150);
         reveal(table, 100);
         reveal(exp, 120);
-      }, 2100);
+      });
     }
 
     // Explicación con truncado/copiar
@@ -254,8 +252,7 @@
     async function ask() {
       btn.disabled = true; q.disabled = true;
 
-      // Barra de progreso controla visibilidad de secciones
-      startProgress();
+      startProgress(); // controla visibilidad y progreso
 
       setExplanation('Procesando…');
       kpis.innerHTML = '';
@@ -270,45 +267,63 @@
         });
         if (!r.ok) throw new Error('Error de servidor');
 
-        // Avance al recibir HTTP
+        // Empuja la barra mientras parseamos
         animateTo(96, 4000);
 
         const data = await r.json();
 
-        // Fallback si no llegan KPIs
+        // --- Normalización de datos del backend ---
+        const g = data?.grafico || {};
+        const labels   = Array.isArray(g.labels) ? g.labels : [];
+        const datasets = Array.isArray(g.datasets) && g.datasets.length
+          ? g.datasets
+          : (Array.isArray(g.values) ? [{ label: g.label || 'Serie', data: g.values }] : []);
+
+        // KPIs fallback si no vienen
         if (!Array.isArray(data.kpis) || data.kpis.length === 0) {
           const kpisAuto = [];
-          if (Array.isArray(data.tabla) && data.tabla.length) {
+          if (Array.isArray(data.tabla)) {
             kpisAuto.push({ nombre: "Filas en tabla", valor: data.tabla.length, periodo: "" });
+          } else if (data.tabla?.rows && Array.isArray(data.tabla.rows)) {
+            kpisAuto.push({ nombre: "Filas en tabla", valor: data.tabla.rows.length, periodo: "" });
           }
-          const ds0 = data?.grafico?.datasets?.[0]?.data;
-          if (Array.isArray(ds0) && ds0.length) {
-            const total = ds0.reduce((a, b) => a + (+b || 0), 0);
-            kpisAuto.push({ nombre: data.grafico.datasets[0].label || "Total serie 1", valor: total, periodo: "" });
+          const serie = datasets?.[0]?.data || [];
+          if (serie.length) {
+            const total = serie.reduce((a,b)=>a+(+b||0),0);
+            kpisAuto.push({ nombre: datasets?.[0]?.label || "Total serie 1", valor: total, periodo: "" });
           }
           data.kpis = kpisAuto;
         }
-        
+
+        // --- Pintado ---
         setExplanation(data.explicacion || '');
 
-        (data.kpis||[]).forEach(k => kpis.appendChild(kpiCard(k)));
-        revealAll([...kpis.children], 80);
+        (function pintarKpis(list){
+          kpis.innerHTML = '';
+          (list||[]).forEach(k => kpis.appendChild(kpiCard(k)));
+        })(data.kpis);
 
-        const g = data.grafico || {};
-        const tipo = chartTypeSel.value || g.tipo || 'bar';
-        const canvas = document.getElementById('chart');
-        const ctx = canvas.getContext('2d');
-        if ((g.labels||[]).length && (g.datasets||[]).length){
-          buildChart(ctx, tipo, g.labels, g.datasets);
-          reveal(canvas, 150);
-        }
+        (function pintarGrafico(){
+          const canvas = document.getElementById('chart');
+          const ctx = canvas.getContext('2d');
+          if (labels.length && datasets.length) {
+            buildChart(ctx, chartTypeSel.value || g.tipo || 'bar', labels, datasets);
+          }
+        })();
 
-        renderTable(data.tabla||[]);
-        reveal(table, 100);
+        (function pintarTabla(tb){
+          if (Array.isArray(tb)) {
+            renderTable(tb); return;
+          }
+          if (tb?.rows && Array.isArray(tb.rows)) {
+            const headers = Array.isArray(tb.headers) ? tb.headers : [];
+            const rows = tb.rows.map(r => Object.fromEntries(r.map((v,i)=>[headers[i] ?? `Col ${i+1}`, v])));
+            renderTable(rows); return;
+          }
+          renderTable([]);
+        })(data.tabla);
 
-        // Termina y muestra secciones
-        endProgress();
-
+        endProgress(); // muestra secciones al completar 100%
       } catch (e) {
         setExplanation('Error: ' + e.message);
         endProgress();
