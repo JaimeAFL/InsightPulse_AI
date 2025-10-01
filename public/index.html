@@ -132,6 +132,7 @@
       rafId = requestAnimationFrame(step);
     }
     function startProgress(){
+      hideSections();
       pWrap.classList.remove('hidden');
       setBar(0);
       // Faster than before, but still slow
@@ -139,7 +140,16 @@
     }
     function endProgress(){
       animateTo(100, 1800);
-      setTimeout(()=> pWrap.classList.add('hidden'), 2100);
+      setTimeout(()=>{
+        pWrap.classList.add('hidden');
+        showSections();
+        // Revela elementos ya pintados
+        revealAll([...kpis.children], 80);
+        const canvas = document.getElementById('chart');
+        if (canvas) reveal(canvas, 150);
+        reveal(table, 100);
+        reveal(exp, 120);
+      }, 2100);
     }
 
     // Explicación con truncado/copiar
@@ -240,9 +250,7 @@
     async function ask() {
       btn.disabled = true; q.disabled = true;
 
-      // Oculta secciones y muestra barra de progreso dentro del mismo contenedor
-      hideSections();
-      pWrap.classList.remove('hidden');
+      // Barra de progreso controla visibilidad de secciones
       startProgress();
 
       setExplanation('Procesando…');
@@ -296,7 +304,6 @@
 
         // Termina y muestra secciones
         endProgress();
-        showSections();
 
       } catch (e) {
         setExplanation('Error: ' + e.message);
