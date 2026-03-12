@@ -157,22 +157,6 @@ Endpoint de comprobación de vida.
 
 ---
 
-## Nombre alternativo sugerido para el repositorio
-
-Si quieres un nombre más atractivo que invite a entrar:
-
-### **`insightpulse-ai`**
-
-Porque comunica rápido el valor principal: *insights accionables + velocidad + IA*.
-
-Otras opciones cortas:
-
-- `kpi-radar-ai`
-- `biz-insights-assistant`
-- `report-query-ai`
-
----
-
 ## Disclaimer
 
 - Esta herramienta **no reemplaza** procesos formales de analítica o auditoría.
