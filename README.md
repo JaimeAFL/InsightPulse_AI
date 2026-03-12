@@ -11,6 +11,12 @@ Aplicación web ligera para **consultar informes de negocio en lenguaje natural*
 
 ---
 
+## Enlace a la aplicacion web
+
+https://pagina-web-informe2.vercel.app/
+
+---
+
 ## ¿Para qué sirve?
 
 `InsightPulse AI` está pensado para equipos que necesitan transformar datos en decisiones sin montar una plataforma pesada de BI.
